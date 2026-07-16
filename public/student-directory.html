@@ -1,0 +1,20 @@
+<script>
+  const token = localStorage.getItem('token');
+
+  async function loadStudents() {
+    const res = await fetch('/api/students', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const students = await res.json();
+    const tableBody = document.getElementById('studentTableBody'); // match your mockup's table id
+    tableBody.innerHTML = students.map(s => `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.admissionNumber}</td>
+        <td>${s.className}</td>
+      </tr>
+    `).join('');
+  }
+
+  loadStudents();
+</script>
