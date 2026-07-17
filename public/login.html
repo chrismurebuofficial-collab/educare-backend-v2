@@ -1,35 +1,363 @@
-<script>
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduManager — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-950: #0f1b33;
+    --navy-900: #16264a;
+    --navy-800: #1e335e;
+    --brass: #c9972e;
+    --brass-light: #e0b352;
+    --cream: #f6f1e6;
+    --cream-dim: #d9d2bd;
+    --ink: #1c1a14;
+    --ok: #4f9d69;
+    --err: #c0533e;
+  }
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-      if (!res.ok) {
-        alert(data.error || 'Login failed');
-        return;
-      }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--navy-950);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(201,151,46,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(201,151,46,0.06), transparent 45%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--cream);
+  }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
-      localStorage.setItem('name', data.name);
+  /* Signature element: live "bell schedule" ticker */
+  .ticker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    background: var(--navy-900);
+    border-bottom: 1px solid rgba(201,151,46,0.25);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+  .ticker .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--brass);
+    box-shadow: 0 0 8px var(--brass);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
-      const redirects = {
-        admin: '/admin-dashboard.html',
-        teacher: '/teacher-dashboard.html',
-        student: '/student-portal.html',
-        parent: '/parent-portal.html'
-      };
-      window.location.href = redirects[data.role];
-    } catch (err) {
-      alert('Could not reach the server');
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--cream);
+    color: var(--ink);
+    border-radius: 4px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,151,46,0.15);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 2.2rem 2rem 1.4rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(28,26,20,0.08);
+  }
+
+  .crest {
+    width: 46px; height: 46px;
+    margin: 0 auto 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--brass);
+    border-radius: 50%;
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    color: var(--brass);
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: #6b6455;
+    margin-top: 0.35rem;
+  }
+
+  .roles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: rgba(28,26,20,0.06);
+    margin: 0 2rem;
+    margin-top: 1.3rem;
+    border-radius: 3px;
+    padding: 3px;
+  }
+
+  .role-btn {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 0.3rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #7a7360;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .role-btn.active {
+    background: var(--navy-900);
+    color: var(--brass-light);
+  }
+
+  form {
+    padding: 1.6rem 2rem 2.2rem;
+  }
+
+  .field {
+    margin-bottom: 1.1rem;
+  }
+
+  label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #7a7360;
+    margin-bottom: 0.4rem;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(28,26,20,0.18);
+    border-radius: 3px;
+    background: #fffdf8;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input:focus {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px rgba(201,151,46,0.18);
+  }
+
+  .row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.4rem;
+    font-size: 0.8rem;
+  }
+
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #6b6455;
+  }
+
+  .remember input { width: auto; }
+
+  a.link {
+    color: var(--navy-800);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  a.link:hover { text-decoration: underline; }
+
+  button[type="submit"] {
+    width: 100%;
+    padding: 0.85rem;
+    border: none;
+    border-radius: 3px;
+    background: var(--navy-900);
+    color: var(--brass-light);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  button[type="submit"]:hover { background: var(--navy-800); }
+  button[type="submit"]:active { transform: scale(0.99); }
+  button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+
+  .msg {
+    margin-top: 0.9rem;
+    font-size: 0.82rem;
+    text-align: center;
+    min-height: 1.1em;
+  }
+  .msg.error { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+
+  footer {
+    text-align: center;
+    padding: 1.2rem;
+    font-size: 0.72rem;
+    color: rgba(246,241,230,0.35);
+    letter-spacing: 0.03em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ticker .dot { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="ticker">
+    <span class="dot"></span>
+    <span id="tickerText">Loading session…</span>
+  </div>
+
+  <main>
+    <div class="card">
+      <div class="card-header">
+        <div class="crest">EM</div>
+        <h1>EduManager</h1>
+        <p class="subtitle">Sign in to your portal</p>
+      </div>
+
+      <div class="roles" id="roleTabs">
+        <button type="button" class="role-btn active" data-role="admin">Admin</button>
+        <button type="button" class="role-btn" data-role="teacher">Teacher</button>
+        <button type="button" class="role-btn" data-role="student">Student</button>
+        <button type="button" class="role-btn" data-role="parent">Parent</button>
+      </div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@school.edu" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <div class="row-between">
+          <label class="remember">
+            <input type="checkbox" id="remember">
+            Keep me signed in
+          </label>
+          <a href="#" class="link">Forgot password?</a>
+        </div>
+
+        <button type="submit" id="loginBtn">Sign In</button>
+        <p class="msg" id="msg"></p>
+      </form>
+    </div>
+  </main>
+
+  <footer>EduManager — School Management Platform</footer>
+
+  <script>
+    // Live-updating ticker (signature element): shows current time,
+    // purely cosmetic but reinforces "school day in session" feel
+    function updateTicker() {
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('tickerText').textContent = `Session active · ${time}`;
     }
-  });
-</script>
+    updateTicker();
+    setInterval(updateTicker, 30000);
+
+    // Role tab selection
+    let selectedRole = 'admin';
+    document.querySelectorAll('.role-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedRole = btn.dataset.role;
+      });
+    });
+
+    // Login submit -> calls your backend /api/auth/login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('msg');
+      const btn = document.getElementById('loginBtn');
+
+      msg.textContent = '';
+      msg.className = 'msg';
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          msg.textContent = data.error || 'Login failed';
+          msg.classList.add('error');
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('name', data.name);
+
+        msg.textContent = 'Signed in — redirecting…';
+        msg.classList.add('ok');
+
+        const redirects = {
+          admin: '/admin-dashboard.html',
+          teacher: '/teacher-dashboard.html',
+          student: '/student-portal.html',
+          parent: '/parent-portal.html'
+        };
+        window.location.href = redirects[data.role] || redirects[selectedRole];
+      } catch (err) {
+        msg.textContent = 'Could not reach the server';
+        msg.classList.add('error');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+
+</body>
+</html>

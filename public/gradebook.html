@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — EduManager</title>
+<title>Gradebook — EduManager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -14,10 +14,10 @@
     <div class="brand">Edu<span class="accent">Manager</span></div>
     <nav>
       <a href="admin-dashboard.html">Dashboard</a>
-      <a href="student-directory.html" class="active">Students</a>
+      <a href="student-directory.html">Students</a>
       <a href="staff.html">Staff</a>
       <a href="attendance.html">Attendance</a>
-      <a href="gradebook.html">Gradebook</a>
+      <a href="gradebook.html" class="active">Gradebook</a>
       <a href="fees.html">Fees</a>
       <a href="timetable.html">Timetable</a>
       <a href="announcements.html">Announcements</a>
@@ -32,37 +32,37 @@
   <main>
     <div class="page-header">
       <div>
-        <h1>Student Directory</h1>
-        <p class="sub">Manage enrolled students</p>
+        <h1>Gradebook</h1>
+        <p class="sub">Record and review exam scores</p>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Add Student</h2>
-      <form id="studentForm">
+      <h2>Add Grade</h2>
+      <form id="gradeForm">
         <div class="form-grid">
           <div class="field">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" required>
+            <label for="studentSelect">Student</label>
+            <select id="studentSelect" required></select>
           </div>
           <div class="field">
-            <label for="admissionNumber">Admission No.</label>
-            <input type="text" id="admissionNumber" required>
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" required>
           </div>
           <div class="field">
-            <label for="className">Class</label>
-            <input type="text" id="className" placeholder="e.g. Grade 5">
+            <label for="examType">Exam Type</label>
+            <input type="text" id="examType" placeholder="e.g. Midterm">
           </div>
           <div class="field">
-            <label for="guardianName">Guardian Name</label>
-            <input type="text" id="guardianName">
+            <label for="score">Score</label>
+            <input type="number" id="score" min="0" max="100" required>
           </div>
           <div class="field">
-            <label for="guardianContact">Guardian Contact</label>
-            <input type="text" id="guardianContact">
+            <label for="term">Term</label>
+            <input type="text" id="term" placeholder="e.g. Term 2">
           </div>
           <div class="field">
-            <button type="submit" class="btn">Add Student</button>
+            <button type="submit" class="btn">Save Grade</button>
           </div>
         </div>
         <p class="msg" id="msg"></p>
@@ -71,8 +71,8 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Admission No.</th><th>Class</th><th>Guardian</th><th>Contact</th></tr></thead>
-        <tbody id="studentRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
+        <thead><tr><th>Student</th><th>Subject</th><th>Exam Type</th><th>Score</th><th>Term</th></tr></thead>
+        <tbody id="gradeRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -84,53 +84,61 @@
     document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
     function logout() { localStorage.clear(); window.location.href = '/login.html'; }
 
-    async function loadStudents() {
+    async function loadStudentOptions() {
       const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const students = await res.json();
-      const rows = document.getElementById('studentRows');
-      if (Array.isArray(students) && students.length) {
-        rows.innerHTML = students.map(s => `
+      const select = document.getElementById('studentSelect');
+      select.innerHTML = students.map(s => `<option value="${s._id}">${s.name} (${s.admissionNumber})</option>`).join('');
+    }
+
+    async function loadGrades() {
+      const res = await fetch('/api/grades', { headers: { 'Authorization': `Bearer ${token}` } });
+      const grades = await res.json();
+      const rows = document.getElementById('gradeRows');
+      if (Array.isArray(grades) && grades.length) {
+        rows.innerHTML = grades.map(g => `
           <tr>
-            <td>${s.name}</td>
-            <td>${s.admissionNumber}</td>
-            <td>${s.className || '—'}</td>
-            <td>${s.guardianName || '—'}</td>
-            <td>${s.guardianContact || '—'}</td>
+            <td>${g.studentId?.name || 'Unknown'}</td>
+            <td>${g.subject}</td>
+            <td>${g.examType || '—'}</td>
+            <td>${g.score}</td>
+            <td>${g.term || '—'}</td>
           </tr>
         `).join('');
       } else {
-        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet — add your first one above</td></tr>';
+        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No grades recorded yet</td></tr>';
       }
     }
 
-    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+    document.getElementById('gradeForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('msg');
       const body = {
-        name: document.getElementById('name').value,
-        admissionNumber: document.getElementById('admissionNumber').value,
-        className: document.getElementById('className').value,
-        guardianName: document.getElementById('guardianName').value,
-        guardianContact: document.getElementById('guardianContact').value
+        studentId: document.getElementById('studentSelect').value,
+        subject: document.getElementById('subject').value,
+        examType: document.getElementById('examType').value,
+        score: Number(document.getElementById('score').value),
+        term: document.getElementById('term').value
       };
-      const res = await fetch('/api/students', {
+      const res = await fetch('/api/grades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        msg.textContent = 'Student added';
+        msg.textContent = 'Grade saved';
         msg.className = 'msg ok';
         e.target.reset();
-        loadStudents();
+        loadGrades();
       } else {
         const data = await res.json();
-        msg.textContent = data.error || 'Failed to add student';
+        msg.textContent = data.error || 'Failed to save grade';
         msg.className = 'msg error';
       }
     });
 
-    loadStudents();
+    loadStudentOptions();
+    loadGrades();
   </script>
 
 </body>

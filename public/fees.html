@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — EduManager</title>
+<title>Fees — EduManager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -14,11 +14,11 @@
     <div class="brand">Edu<span class="accent">Manager</span></div>
     <nav>
       <a href="admin-dashboard.html">Dashboard</a>
-      <a href="student-directory.html" class="active">Students</a>
+      <a href="student-directory.html">Students</a>
       <a href="staff.html">Staff</a>
       <a href="attendance.html">Attendance</a>
       <a href="gradebook.html">Gradebook</a>
-      <a href="fees.html">Fees</a>
+      <a href="fees.html" class="active">Fees</a>
       <a href="timetable.html">Timetable</a>
       <a href="announcements.html">Announcements</a>
     </nav>
@@ -32,37 +32,37 @@
   <main>
     <div class="page-header">
       <div>
-        <h1>Student Directory</h1>
-        <p class="sub">Manage enrolled students</p>
+        <h1>Fees</h1>
+        <p class="sub">Track fee records and payment status</p>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Add Student</h2>
-      <form id="studentForm">
+      <h2>Add Fee Record</h2>
+      <form id="feeForm">
         <div class="form-grid">
           <div class="field">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" required>
+            <label for="studentSelect">Student</label>
+            <select id="studentSelect" required></select>
           </div>
           <div class="field">
-            <label for="admissionNumber">Admission No.</label>
-            <input type="text" id="admissionNumber" required>
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" min="0" step="0.01" required>
           </div>
           <div class="field">
-            <label for="className">Class</label>
-            <input type="text" id="className" placeholder="e.g. Grade 5">
+            <label for="dueDate">Due Date</label>
+            <input type="date" id="dueDate">
           </div>
           <div class="field">
-            <label for="guardianName">Guardian Name</label>
-            <input type="text" id="guardianName">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="unpaid">Unpaid</option>
+              <option value="partial">Partial</option>
+              <option value="paid">Paid</option>
+            </select>
           </div>
           <div class="field">
-            <label for="guardianContact">Guardian Contact</label>
-            <input type="text" id="guardianContact">
-          </div>
-          <div class="field">
-            <button type="submit" class="btn">Add Student</button>
+            <button type="submit" class="btn">Save Fee Record</button>
           </div>
         </div>
         <p class="msg" id="msg"></p>
@@ -71,8 +71,8 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Admission No.</th><th>Class</th><th>Guardian</th><th>Contact</th></tr></thead>
-        <tbody id="studentRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
+        <thead><tr><th>Student</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody id="feeRows"><tr><td colspan="4" class="empty-state">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -84,54 +84,61 @@
     document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
     function logout() { localStorage.clear(); window.location.href = '/login.html'; }
 
-    async function loadStudents() {
+    async function loadStudentOptions() {
       const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const students = await res.json();
-      const rows = document.getElementById('studentRows');
-      if (Array.isArray(students) && students.length) {
-        rows.innerHTML = students.map(s => `
+      const select = document.getElementById('studentSelect');
+      select.innerHTML = students.map(s => `<option value="${s._id}">${s.name} (${s.admissionNumber})</option>`).join('');
+    }
+
+    async function loadFees() {
+      const res = await fetch('/api/fees', { headers: { 'Authorization': `Bearer ${token}` } });
+      const fees = await res.json();
+      const rows = document.getElementById('feeRows');
+      if (Array.isArray(fees) && fees.length) {
+        rows.innerHTML = fees.map(f => `
           <tr>
-            <td>${s.name}</td>
-            <td>${s.admissionNumber}</td>
-            <td>${s.className || '—'}</td>
-            <td>${s.guardianName || '—'}</td>
-            <td>${s.guardianContact || '—'}</td>
+            <td>${f.studentId?.name || 'Unknown'}</td>
+            <td>${Number(f.amount).toFixed(2)}</td>
+            <td>${f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
+            <td><span class="badge ${f.status}">${f.status}</span></td>
           </tr>
         `).join('');
       } else {
-        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet — add your first one above</td></tr>';
+        rows.innerHTML = '<tr><td colspan="4" class="empty-state">No fee records yet</td></tr>';
       }
     }
 
-    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+    document.getElementById('feeForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('msg');
       const body = {
-        name: document.getElementById('name').value,
-        admissionNumber: document.getElementById('admissionNumber').value,
-        className: document.getElementById('className').value,
-        guardianName: document.getElementById('guardianName').value,
-        guardianContact: document.getElementById('guardianContact').value
+        studentId: document.getElementById('studentSelect').value,
+        amount: Number(document.getElementById('amount').value),
+        dueDate: document.getElementById('dueDate').value,
+        status: document.getElementById('status').value
       };
-      const res = await fetch('/api/students', {
+      const res = await fetch('/api/fees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        msg.textContent = 'Student added';
+        msg.textContent = 'Fee record saved';
         msg.className = 'msg ok';
         e.target.reset();
-        loadStudents();
+        loadFees();
       } else {
         const data = await res.json();
-        msg.textContent = data.error || 'Failed to add student';
+        msg.textContent = data.error || 'Failed to save fee record';
         msg.className = 'msg error';
       }
     });
 
-    loadStudents();
+    loadStudentOptions();
+    loadFees();
   </script>
 
 </body>
 </html>
+

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — EduManager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">Edu<span class="accent">Manager</span></div>
+    <nav>
+      <a href="admin-dashboard.html" class="active">Dashboard</a>
+      <a href="student-directory.html">Students</a>
+      <a href="staff.html">Staff</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="gradebook.html">Gradebook</a>
+      <a href="fees.html">Fees</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="announcements.html">Announcements</a>
+    </nav>
+    <div class="user-box">
+      <div class="name" id="userName">—</div>
+      <div class="role" id="userRole">—</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="sub">School-wide overview</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statStudents">—</div>
+        <div class="label">Students</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statUnpaidFees">—</div>
+        <div class="label">Unpaid Fee Records</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statAnnouncements">—</div>
+        <div class="label">Announcements</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTimetable">—</div>
+        <div class="label">Timetable Entries</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Announcements</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Audience</th><th>Date</th></tr></thead>
+          <tbody id="announcementRows"><tr><td colspan="3" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    document.getElementById('userName').textContent = localStorage.getItem('name') || '';
+    document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    async function authFetch(url) {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+
+    async function loadStats() {
+      const students = await authFetch('/api/students');
+      document.getElementById('statStudents').textContent = Array.isArray(students) ? students.length : '0';
+
+      const fees = await authFetch('/api/fees');
+      const unpaid = Array.isArray(fees) ? fees.filter(f => f.status !== 'paid').length : 0;
+      document.getElementById('statUnpaidFees').textContent = unpaid;
+
+      const announcements = await authFetch('/api/announcements');
+      document.getElementById('statAnnouncements').textContent = Array.isArray(announcements) ? announcements.length : '0';
+
+      const timetable = await authFetch('/api/timetable');
+      document.getElementById('statTimetable').textContent = Array.isArray(timetable) ? timetable.length : '0';
+
+      const rows = document.getElementById('announcementRows');
+      if (Array.isArray(announcements) && announcements.length) {
+        rows.innerHTML = announcements.slice(0, 5).map(a => `
+          <tr>
+            <td>${a.title}</td>
+            <td style="text-transform:capitalize">${a.audience}</td>
+            <td>${new Date(a.date).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      } else {
+        rows.innerHTML = '<tr><td colspan="3" class="empty-state">No announcements yet</td></tr>';
+      }
+    }
+
+    loadStats();
+  </script>
+
+</body>
+</html>
+

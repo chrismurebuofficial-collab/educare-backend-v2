@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — EduManager</title>
+<title>Staff — EduManager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -14,8 +14,8 @@
     <div class="brand">Edu<span class="accent">Manager</span></div>
     <nav>
       <a href="admin-dashboard.html">Dashboard</a>
-      <a href="student-directory.html" class="active">Students</a>
-      <a href="staff.html">Staff</a>
+      <a href="student-directory.html">Students</a>
+      <a href="staff.html" class="active">Staff</a>
       <a href="attendance.html">Attendance</a>
       <a href="gradebook.html">Gradebook</a>
       <a href="fees.html">Fees</a>
@@ -32,37 +32,36 @@
   <main>
     <div class="page-header">
       <div>
-        <h1>Student Directory</h1>
-        <p class="sub">Manage enrolled students</p>
+        <h1>Staff</h1>
+        <p class="sub">Manage admin and teacher accounts</p>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Add Student</h2>
-      <form id="studentForm">
+      <h2>Add Staff Account</h2>
+      <form id="staffForm">
         <div class="form-grid">
           <div class="field">
             <label for="name">Full Name</label>
             <input type="text" id="name" required>
           </div>
           <div class="field">
-            <label for="admissionNumber">Admission No.</label>
-            <input type="text" id="admissionNumber" required>
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
           </div>
           <div class="field">
-            <label for="className">Class</label>
-            <input type="text" id="className" placeholder="e.g. Grade 5">
+            <label for="password">Temporary Password</label>
+            <input type="text" id="password" required minlength="6">
           </div>
           <div class="field">
-            <label for="guardianName">Guardian Name</label>
-            <input type="text" id="guardianName">
+            <label for="role">Role</label>
+            <select id="role">
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
           <div class="field">
-            <label for="guardianContact">Guardian Contact</label>
-            <input type="text" id="guardianContact">
-          </div>
-          <div class="field">
-            <button type="submit" class="btn">Add Student</button>
+            <button type="submit" class="btn">Add Staff</button>
           </div>
         </div>
         <p class="msg" id="msg"></p>
@@ -71,8 +70,8 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Admission No.</th><th>Class</th><th>Guardian</th><th>Contact</th></tr></thead>
-        <tbody id="studentRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+        <tbody id="staffRows"><tr><td colspan="4" class="empty-state">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -84,53 +83,55 @@
     document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
     function logout() { localStorage.clear(); window.location.href = '/login.html'; }
 
-    async function loadStudents() {
-      const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
-      const students = await res.json();
-      const rows = document.getElementById('studentRows');
-      if (Array.isArray(students) && students.length) {
-        rows.innerHTML = students.map(s => `
+    async function loadStaff() {
+      const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+      const rows = document.getElementById('staffRows');
+      if (!res.ok) {
+        rows.innerHTML = '<tr><td colspan="4" class="empty-state">Could not load staff — admin access required</td></tr>';
+        return;
+      }
+      const staff = await res.json();
+      if (Array.isArray(staff) && staff.length) {
+        rows.innerHTML = staff.map(u => `
           <tr>
-            <td>${s.name}</td>
-            <td>${s.admissionNumber}</td>
-            <td>${s.className || '—'}</td>
-            <td>${s.guardianName || '—'}</td>
-            <td>${s.guardianContact || '—'}</td>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td style="text-transform:capitalize"><span class="badge ${u.role === 'admin' ? 'paid' : 'late'}">${u.role}</span></td>
+            <td>${new Date(u.createdAt).toLocaleDateString()}</td>
           </tr>
         `).join('');
       } else {
-        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet — add your first one above</td></tr>';
+        rows.innerHTML = '<tr><td colspan="4" class="empty-state">No staff accounts yet — add one above</td></tr>';
       }
     }
 
-    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+    document.getElementById('staffForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('msg');
       const body = {
         name: document.getElementById('name').value,
-        admissionNumber: document.getElementById('admissionNumber').value,
-        className: document.getElementById('className').value,
-        guardianName: document.getElementById('guardianName').value,
-        guardianContact: document.getElementById('guardianContact').value
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value
       };
-      const res = await fetch('/api/students', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        msg.textContent = 'Student added';
+        msg.textContent = 'Staff account created';
         msg.className = 'msg ok';
         e.target.reset();
-        loadStudents();
+        loadStaff();
       } else {
         const data = await res.json();
-        msg.textContent = data.error || 'Failed to add student';
+        msg.textContent = data.error || 'Failed to create account';
         msg.className = 'msg error';
       }
     });
 
-    loadStudents();
+    loadStaff();
   </script>
 
 </body>

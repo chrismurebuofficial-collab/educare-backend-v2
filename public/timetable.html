@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — EduManager</title>
+<title>Timetable — EduManager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -14,12 +14,12 @@
     <div class="brand">Edu<span class="accent">Manager</span></div>
     <nav>
       <a href="admin-dashboard.html">Dashboard</a>
-      <a href="student-directory.html" class="active">Students</a>
+      <a href="student-directory.html">Students</a>
       <a href="staff.html">Staff</a>
       <a href="attendance.html">Attendance</a>
       <a href="gradebook.html">Gradebook</a>
       <a href="fees.html">Fees</a>
-      <a href="timetable.html">Timetable</a>
+      <a href="timetable.html" class="active">Timetable</a>
       <a href="announcements.html">Announcements</a>
     </nav>
     <div class="user-box">
@@ -32,37 +32,43 @@
   <main>
     <div class="page-header">
       <div>
-        <h1>Student Directory</h1>
-        <p class="sub">Manage enrolled students</p>
+        <h1>Timetable</h1>
+        <p class="sub">Class schedule by day and period</p>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Add Student</h2>
-      <form id="studentForm">
+      <h2>Add Timetable Entry</h2>
+      <form id="timetableForm">
         <div class="form-grid">
           <div class="field">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" required>
-          </div>
-          <div class="field">
-            <label for="admissionNumber">Admission No.</label>
-            <input type="text" id="admissionNumber" required>
-          </div>
-          <div class="field">
             <label for="className">Class</label>
-            <input type="text" id="className" placeholder="e.g. Grade 5">
+            <input type="text" id="className" placeholder="e.g. Grade 5" required>
           </div>
           <div class="field">
-            <label for="guardianName">Guardian Name</label>
-            <input type="text" id="guardianName">
+            <label for="day">Day</label>
+            <select id="day" required>
+              <option>Monday</option>
+              <option>Tuesday</option>
+              <option>Wednesday</option>
+              <option>Thursday</option>
+              <option>Friday</option>
+            </select>
           </div>
           <div class="field">
-            <label for="guardianContact">Guardian Contact</label>
-            <input type="text" id="guardianContact">
+            <label for="period">Period</label>
+            <input type="text" id="period" placeholder="e.g. Period 1 (8:00-8:45)" required>
           </div>
           <div class="field">
-            <button type="submit" class="btn">Add Student</button>
+            <label for="subject">Subject</label>
+            <input type="text" id="subject">
+          </div>
+          <div class="field">
+            <label for="room">Room</label>
+            <input type="text" id="room">
+          </div>
+          <div class="field">
+            <button type="submit" class="btn">Save Entry</button>
           </div>
         </div>
         <p class="msg" id="msg"></p>
@@ -71,8 +77,8 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Admission No.</th><th>Class</th><th>Guardian</th><th>Contact</th></tr></thead>
-        <tbody id="studentRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
+        <thead><tr><th>Class</th><th>Day</th><th>Period</th><th>Subject</th><th>Room</th></tr></thead>
+        <tbody id="timetableRows"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -84,54 +90,55 @@
     document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
     function logout() { localStorage.clear(); window.location.href = '/login.html'; }
 
-    async function loadStudents() {
-      const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
-      const students = await res.json();
-      const rows = document.getElementById('studentRows');
-      if (Array.isArray(students) && students.length) {
-        rows.innerHTML = students.map(s => `
+    async function loadTimetable() {
+      const res = await fetch('/api/timetable', { headers: { 'Authorization': `Bearer ${token}` } });
+      const entries = await res.json();
+      const rows = document.getElementById('timetableRows');
+      if (Array.isArray(entries) && entries.length) {
+        rows.innerHTML = entries.map(t => `
           <tr>
-            <td>${s.name}</td>
-            <td>${s.admissionNumber}</td>
-            <td>${s.className || '—'}</td>
-            <td>${s.guardianName || '—'}</td>
-            <td>${s.guardianContact || '—'}</td>
+            <td>${t.className}</td>
+            <td>${t.day}</td>
+            <td>${t.period}</td>
+            <td>${t.subject || '—'}</td>
+            <td>${t.room || '—'}</td>
           </tr>
         `).join('');
       } else {
-        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet — add your first one above</td></tr>';
+        rows.innerHTML = '<tr><td colspan="5" class="empty-state">No timetable entries yet</td></tr>';
       }
     }
 
-    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+    document.getElementById('timetableForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('msg');
       const body = {
-        name: document.getElementById('name').value,
-        admissionNumber: document.getElementById('admissionNumber').value,
         className: document.getElementById('className').value,
-        guardianName: document.getElementById('guardianName').value,
-        guardianContact: document.getElementById('guardianContact').value
+        day: document.getElementById('day').value,
+        period: document.getElementById('period').value,
+        subject: document.getElementById('subject').value,
+        room: document.getElementById('room').value
       };
-      const res = await fetch('/api/students', {
+      const res = await fetch('/api/timetable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        msg.textContent = 'Student added';
+        msg.textContent = 'Entry saved';
         msg.className = 'msg ok';
         e.target.reset();
-        loadStudents();
+        loadTimetable();
       } else {
         const data = await res.json();
-        msg.textContent = data.error || 'Failed to add student';
+        msg.textContent = data.error || 'Failed to save entry';
         msg.className = 'msg error';
       }
     });
 
-    loadStudents();
+    loadTimetable();
   </script>
 
 </body>
 </html>
+

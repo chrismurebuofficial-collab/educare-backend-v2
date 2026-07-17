@@ -16,6 +16,24 @@ app.use('/api/auth', authRoutes);
 const studentRoutes = require('./routes/student');
 app.use('/api/students', studentRoutes);
 
+const attendanceRoutes = require('./routes/attendance');
+app.use('/api/attendance', attendanceRoutes);
+
+const gradeRoutes = require('./routes/grade');
+app.use('/api/grades', gradeRoutes);
+
+const feeRoutes = require('./routes/fee');
+app.use('/api/fees', feeRoutes);
+
+const announcementRoutes = require('./routes/announcement');
+app.use('/api/announcements', announcementRoutes);
+
+const timetableRoutes = require('./routes/timetable');
+app.use('/api/timetable', timetableRoutes);
+
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is alive' });
 });

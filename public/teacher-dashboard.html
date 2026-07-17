@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard — EduManager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">Edu<span class="accent">Manager</span></div>
+    <nav>
+      <a href="teacher-dashboard.html" class="active">Dashboard</a>
+      <a href="attendance.html">Mark Attendance</a>
+      <a href="gradebook.html">Gradebook</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="announcements.html">Announcements</a>
+    </nav>
+    <div class="user-box">
+      <div class="name" id="userName">—</div>
+      <div class="role" id="userRole">—</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <div>
+        <h1>Welcome back</h1>
+        <p class="sub">Your teaching overview</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statStudents">—</div>
+        <div class="label">Total Students</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTimetable">—</div>
+        <div class="label">Timetable Entries</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Announcements</h2>
+      <div id="feed"><p class="empty-state">Loading…</p></div>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+    document.getElementById('userName').textContent = localStorage.getItem('name') || '';
+    document.getElementById('userRole').textContent = localStorage.getItem('role') || '';
+    function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+
+    async function authFetch(url) {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+
+    async function loadDashboard() {
+      const students = await authFetch('/api/students');
+      document.getElementById('statStudents').textContent = Array.isArray(students) ? students.length : '0';
+
+      const timetable = await authFetch('/api/timetable');
+      document.getElementById('statTimetable').textContent = Array.isArray(timetable) ? timetable.length : '0';
+
+      const announcements = await authFetch('/api/announcements');
+      const feed = document.getElementById('feed');
+      if (Array.isArray(announcements) && announcements.length) {
+        feed.innerHTML = announcements.slice(0, 8).map(a => `
+          <div style="padding:0.9rem 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.6rem;">
+              <strong style="font-family:'Fraunces',serif; font-size:1.02rem;">${a.title}</strong>
+              <span style="font-size:0.72rem; color:#7a7360;">${new Date(a.date).toLocaleDateString()}</span>
+            </div>
+            <p style="font-size:0.88rem; margin-top:0.35rem; color:#33301f;">${a.message}</p>
+          </div>
+        `).join('');
+      } else {
+        feed.innerHTML = '<p class="empty-state">No announcements yet</p>';
+      }
+    }
+
+    loadDashboard();
+  </script>
+
+</body>
+</html>
