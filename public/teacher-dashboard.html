@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teacher Dashboard — EduManager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -77,10 +77,10 @@
         feed.innerHTML = announcements.slice(0, 8).map(a => `
           <div style="padding:0.9rem 0; border-bottom:1px solid var(--border);">
             <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.6rem;">
-              <strong style="font-family:'Fraunces',serif; font-size:1.02rem;">${a.title}</strong>
-              <span style="font-size:0.72rem; color:#7a7360;">${new Date(a.date).toLocaleDateString()}</span>
+              <strong style="font-family:'Manrope',sans-serif; font-size:1.02rem;">${a.title}</strong>
+              <span style="font-size:0.72rem; color:var(--gray-600);">${new Date(a.date).toLocaleDateString()}</span>
             </div>
-            <p style="font-size:0.88rem; margin-top:0.35rem; color:#33301f;">${a.message}</p>
+            <p style="font-size:0.88rem; margin-top:0.35rem; color:var(--ink);">${a.message}</p>
           </div>
         `).join('');
       } else {
